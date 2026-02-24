@@ -4,16 +4,20 @@ import com.albert.api_file.models.User;
 import com.albert.api_file.repositories.IUserRepository;
 import com.albert.api_file.services.UserService;
 import com.auth0.jwt.exceptions.JWTVerificationException;
+import io.netty.channel.ChannelDuplexHandler;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.net.http.HttpTimeoutException;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,7 +26,7 @@ import java.util.UUID;
 public class AuthenticationFilter extends OncePerRequestFilter {
 
     private final JWTService jwtService;
-    private final IUserRepository userRepository;
+    private final UserService userService;
 
     @Override
     protected void doFilterInternal(
@@ -31,35 +35,74 @@ public class AuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException {
 
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication instanceof OAuth2AuthenticationToken token) {
+            handleOauthAuthenctiation(request, response, filterChain, token);
+        } else {
+            handleJwtAuthentication(request, response, filterChain);
+        }
+
+        private void handleOauthAuthentication (
+                HttpServletRequest request,
+                HttpServletResponse response,
+                FilterChain, filterChain,
+                OAuth2AuthenticationToken token
+                ) throws ServletException, IOException {
+            var userOpt = userService.getUserByOidc(token.getName(), token.getAuthorizedClientRegistrationId());
+            if (userOpt.isEmpty()) {
+                SecurityContextHolder.getContext().setAuthentication(null);
+                response.setStatus(401);
+                return;
+            }
+            var user = userOpt.get();
+
+            SecurityContextHolder.getContext()
+                    .setAuthentication(new UsernamePasswordAuthenticationToken(
+                            user, user.getPassword(), user.getAuthorities()
+                    ));
+            filterChain.doFilter(request, response);
+        }
+
         String authenticationHeader = request.getHeader("Authorization");
         if (authenticationHeader == null || authenticationHeader.isBlank() || authenticationHeader.length() <= "Bearer ".length()) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String jwtToken = authenticationHeader.substring("Bearer ".length());
+        private void handleJwtAuthentication (
+                HttpServletRequest request,
+                HttpServletResponse response,
+                FilterChain filterChain
+                ) throws ServletException, IOException {
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader == null || authHeader.isBlank() || !authHeader.startsWith("Bearer ")) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
-        UUID userId;
-        try {
-            userId = jwtService.verifyToken(jwtToken);
-        } catch (JWTVerificationException exception) {
-            response.setStatus(401);
-            return;
+            String token = authHeader.substring("Bearer ".length());
+
+            UUID userId;
+            try {
+                userId = jwtService.validateToken(token);
+            } catch (JWTVerificationException exception) {
+                response.setStatus(401);
+                return;
+            }
+
+            var optUser = userService.getUserById(userId);
+            if (optUser.isEmpty()) {
+                response.setStatus(401);
+                return;
+            }
+
+            var user = optUser.get();
+
+            SecurityContextHolder.getContext()
+                    .setAuthentication(new UsernamePasswordAuthenticationToken(
+                            user, user.getPassword(), user.getAuthorities()
+                    ));
+            filterChain.doFilter(request, response);
         }
-
-        Optional<User> userOptional = userRepository.findById(userId);
-        if (userOptional.isEmpty()) {
-            response.setStatus(401);
-            return;
-        }
-
-        User user = userOptional.get();
-
-        SecurityContextHolder
-                .getContext()
-                .setAuthentication(new UsernamePasswordAuthenticationToken(
-                        user, user.getPassword(), new ArrayList<>()
-                ));
-        filterChain.doFilter(request, response);
     }
 }
