@@ -7,11 +7,14 @@ import com.albert.api_file.exceptions.UsernameErrorException;
 import com.albert.api_file.models.User;
 import com.albert.api_file.repositories.IUserRepository;
 import com.albert.api_file.security.JWTService;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -76,4 +79,38 @@ public class UserService {
         return jwtService.generateToken(user.getId());
 
     }
+
+    public User createOidcUser(String username, String oidcId, String oidcProvider) {
+        if (userRepository.findByUsername(username).isPresent()){
+            throw new UserAlreadyExistsException();
+        }
+
+        var user = new User(username, null);
+        user.setOidcId(oidcId);
+        user.setOidcProvider(oidcProvider);
+
+        user =  userRepository.save(user);
+
+        return user;
+    }
+
+    public String authenticateUser(String username, String password) {
+        var user = userRepository.findByUsername(username);
+
+        return jwtService.generateToken(user.getId());
+    }
+
+    public Optional<User> getUserById(UUID userId){
+        return userRepository.findById(userId);
+    }
+
+    public Optional<User> getUserByOidc(String oidcId, String oidcProvider) {
+        return userRepository.findByOidcAndOidcProvider(oidcId, oidcProvider);
+    }
+
+    @NonNull
+    public UserDetails loadUserByUsername(@NonNull String username) {
+        return userRepository.findByUsername(username);
+    }
+
 }
