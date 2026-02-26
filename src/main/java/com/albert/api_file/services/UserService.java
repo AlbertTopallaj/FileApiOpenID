@@ -10,6 +10,8 @@ import com.albert.api_file.security.JWTService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -97,8 +99,9 @@ public class UserService {
     public String authenticateUser(String username, String password) {
         var user = userRepository.findByUsername(username);
 
-        return jwtService.generateToken(user.getId());
+        return jwtService.generateToken(user.get().getId());
     }
+
 
     public Optional<User> getUserById(UUID userId){
         return userRepository.findById(userId);
@@ -108,9 +111,11 @@ public class UserService {
         return userRepository.findByOidcAndOidcProvider(oidcId, oidcProvider);
     }
 
+
     @NonNull
     public UserDetails loadUserByUsername(@NonNull String username) {
-        return userRepository.findByUsername(username);
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 
 }
