@@ -27,6 +27,9 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String password;
 
+    private String oidcId;
+    private String oidcProvider;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
@@ -46,6 +49,6 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        return List.of();
     }
 }
