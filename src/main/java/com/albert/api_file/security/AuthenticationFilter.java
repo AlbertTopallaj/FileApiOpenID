@@ -18,6 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.net.http.HttpTimeoutException;
+import java.sql.Struct;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,74 +36,75 @@ public class AuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException {
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
         if (authentication instanceof OAuth2AuthenticationToken token) {
-            handleOauthAuthenctiation(request, response, filterChain, token);
-        } else {
-            handleJwtAuthentication(request, response, filterChain);
+            handleOauthAuthentication(request, response, filterChain, token);
+            return;
+        }
+        handleJwtAuthentication(request, response, filterChain);
+    }
+
+    private void handleOauthAuthentication(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain,
+            OAuth2AuthenticationToken token
+    ) throws ServletException, IOException {
+        var userOpt = userService.getUserByOidc(token.getName(), token.getAuthorizedClientRegistrationId());
+        if (userOpt.isEmpty()) {
+            SecurityContextHolder.getContext().setAuthentication(null);
+            response.setStatus(401);
+            return;
         }
 
-        private void handleOauthAuthentication (
-                HttpServletRequest request,
-                HttpServletResponse response,
-                FilterChain, filterChain,
-                OAuth2AuthenticationToken token
-                ) throws ServletException, IOException {
-            var userOpt = userService.getUserByOidc(token.getName(), token.getAuthorizedClientRegistrationId());
-            if (userOpt.isEmpty()) {
-                SecurityContextHolder.getContext().setAuthentication(null);
-                response.setStatus(401);
-                return;
-            }
-            var user = userOpt.get();
+        var user = userOpt.get();
 
-            SecurityContextHolder.getContext()
-                    .setAuthentication(new UsernamePasswordAuthenticationToken(
-                            user, user.getPassword(), user.getAuthorities()
-                    ));
-            filterChain.doFilter(request, response);
-        }
+        SecurityContextHolder.getContext()
+                .setAuthentication(new UsernamePasswordAuthenticationToken(
+                        user, user.getPassword(), user.getAuthorities()
+                ));
+        filterChain.doFilter(request, response);
+    }
 
-        String authenticationHeader = request.getHeader("Authorization");
-        if (authenticationHeader == null || authenticationHeader.isBlank() || authenticationHeader.length() <= "Bearer ".length()) {
+    private void handleJwtAuthentication(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader == null || authHeader.isBlank() || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        private void handleJwtAuthentication (
-                HttpServletRequest request,
-                HttpServletResponse response,
-                FilterChain filterChain
-                ) throws ServletException, IOException {
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || authHeader.isBlank() || !authHeader.startsWith("Bearer ")) {
-                filterChain.doFilter(request, response);
-                return;
-            }
+        String token = authHeader.substring("Bearer ".length());
 
-            String token = authHeader.substring("Bearer ".length());
-
-            UUID userId;
-            try {
-                userId = jwtService.validateToken(token);
-            } catch (JWTVerificationException exception) {
-                response.setStatus(401);
-                return;
-            }
-
-            var optUser = userService.getUserById(userId);
-            if (optUser.isEmpty()) {
-                response.setStatus(401);
-                return;
-            }
-
-            var user = optUser.get();
-
-            SecurityContextHolder.getContext()
-                    .setAuthentication(new UsernamePasswordAuthenticationToken(
-                            user, user.getPassword(), user.getAuthorities()
-                    ));
-            filterChain.doFilter(request, response);
+        UUID userId;
+        try {
+            userId = jwtService.verifyToken(token);
+        } catch (
+                JWTVerificationException exception) {
+            response.setStatus(401);
+            return;
         }
+
+        var optUser = userService.getUserById(userId);
+        if (optUser.isEmpty()) {
+            response.setStatus(401);
+            return;
+        }
+
+        var user = optUser.get();
+
+        SecurityContextHolder.getContext()
+                .setAuthentication(new UsernamePasswordAuthenticationToken(
+                        user, user.getPassword(), user.getAuthorities()
+                ));
+        filterChain.doFilter(request, response);
     }
 }
+
+

@@ -37,7 +37,7 @@ public class SecurityConfig {
                             .anyRequest().authenticated();
                 })
                 .addFilterBefore(
-                        new AuthenticationFilter(jwtService, userRepository),
+                        new AuthenticationFilter(jwtService, userService),
                         OAuth2LoginAuthenticationFilter.class
                 );
         return http.build();

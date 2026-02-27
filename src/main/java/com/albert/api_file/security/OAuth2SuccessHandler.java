@@ -1,7 +1,9 @@
 package com.albert.api_file.security;
 
+import com.albert.api_file.models.User;
 import com.albert.api_file.services.UserService;
 import jakarta.annotation.Nullable;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.Getter;
@@ -19,12 +21,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.IOException;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     private final UserService userService;
+    private final JWTService jwtService;
     private final OAuth2AuthorizedClientRepository authorizedClientRepository;
     private final WebClient webClient = WebClient
             .builder()
@@ -37,9 +41,9 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             @NonNull HttpServletResponse response,
             @NonNull Authentication authentication
     ) throws IOException {
-        var oauth2Token = (OAuth2AuthenticationToken) autentication;
+        var oauth2Token = (OAuth2AuthenticationToken) authentication;
 
-        var oidcProvider = oauth2Token.getAuthoritiesClientRegistrationId();
+        var oidcProvider = oauth2Token.getAuthorizedClientRegistrationId();
         var oidcId = oauth2Token.getName();
 
         System.out.println("Provider: " + oidcProvider);
@@ -52,10 +56,14 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             if (createdUser == null) {
                 response.getWriter().println("Failed to create account");
             } else {
+                var token = jwtService.generateToken(createdUser.getId());
                 response.getWriter().println("Registered account: " + createdUser.getUsername());
+                response.getWriter().println("token: " + token);
             }
         } else {
-            response.getWriter().println("Logged in as: " + user.get().getUsername);
+            var token = jwtService.generateToken(user.get().getId());
+            response.getWriter().println("Logged in as: " + user.get().getUsername());
+            response.getWriter().println("token: " + token);
         }
     }
 
@@ -72,6 +80,10 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
                 request
         );
 
+        if (authorizedClient == null){
+            return null;
+        }
+
         var accessToken = authorizedClient.getAccessToken().getTokenValue();
 
         var emailResponse = webClient
@@ -79,7 +91,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
                 .uri("/user/emails")
                 .header("Authorization", "Bearer " + accessToken)
                 .retrieve()
-                .toEntity(new ParameterizedTypeReference<GetEmailResponse>() {
+                .toEntity(new ParameterizedTypeReference<List<GetEmailsResponse>>() {
                 })
                 .block();
 
@@ -92,7 +104,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         }
 
         var emails = emailResponse.getBody();
-        if (emails = null || emails.isEmpty()) {
+        if (emails == null || emails.isEmpty()) {
             return null;
         }
 

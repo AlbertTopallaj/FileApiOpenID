@@ -20,7 +20,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class UserService {
+public class UserService implements UserDetailsService{
 
     private final IUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -108,10 +108,11 @@ public class UserService {
     }
 
     public Optional<User> getUserByOidc(String oidcId, String oidcProvider) {
-        return userRepository.findByOidcAndOidcProvider(oidcId, oidcProvider);
+        return userRepository.findByOidcIdAndOidcProvider(oidcId, oidcProvider);
     }
 
 
+    @Override
     @NonNull
     public UserDetails loadUserByUsername(@NonNull String username) {
         return userRepository.findByUsername(username)

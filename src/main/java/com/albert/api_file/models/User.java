@@ -21,10 +21,9 @@ public class User implements UserDetails {
     @Id
     private UUID id = UUID.randomUUID();
 
-    @Column(nullable = false)
     private String username;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String password;
 
     private String oidcId;
