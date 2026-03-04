@@ -45,11 +45,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         var oidcProvider = oauth2Token.getAuthorizedClientRegistrationId();
         var oidcId = oauth2Token.getName();
 
-        System.out.println("Provider: " + oidcProvider);
-        System.out.println("Id: " + oidcId);
-
         var user = userService.getUserByOidc(oidcId, oidcProvider);
-        System.out.println("User exists: " + user.isPresent());
         if (user.isEmpty()) {
             var createdUser = createUser(oidcId, oidcProvider, request, authentication);
             if (createdUser == null) {
