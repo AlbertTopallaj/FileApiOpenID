@@ -28,7 +28,6 @@ import java.util.List;
 public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     private final UserService userService;
-    private final JWTService jwtService;
     private final OAuth2AuthorizedClientRepository authorizedClientRepository;
     private final WebClient webClient = WebClient
             .builder()
@@ -56,14 +55,10 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             if (createdUser == null) {
                 response.getWriter().println("Failed to create account");
             } else {
-                var token = jwtService.generateToken(createdUser.getId());
                 response.getWriter().println("Registered account: " + createdUser.getUsername());
-                response.getWriter().println("token: " + token);
             }
         } else {
-            var token = jwtService.generateToken(user.get().getId());
             response.getWriter().println("Logged in as: " + user.get().getUsername());
-            response.getWriter().println("token: " + token);
         }
     }
 
@@ -79,10 +74,6 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
                 authentication,
                 request
         );
-
-        if (authorizedClient == null){
-            return null;
-        }
 
         var accessToken = authorizedClient.getAccessToken().getTokenValue();
 
