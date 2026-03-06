@@ -1,0 +1,33 @@
+meta {
+  name: Upload File
+  type: http
+  seq: 5
+}
+
+post {
+  url: http://localhost:8080/file/upload
+  body: multipartForm
+  auth: none
+}
+
+headers {
+  Cookie: JSESSIONID=FAD332EDF162E3129F8598D76FE36020
+}
+
+body:json {
+  {
+    "title": "test3",
+    "content": "test3",
+    "folderId": "08c1ca45-5708-46ec-a1f2-a20e09230ad0"
+  }
+}
+
+body:multipart-form {
+  file: @file(C:\Users\altop\Desktop\test.txt) @contentType(File)
+  folderId: 659b549e-6711-4339-a31a-a71b1b080a16 @contentType(Text)
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

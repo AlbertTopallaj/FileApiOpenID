@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "FileAPI",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

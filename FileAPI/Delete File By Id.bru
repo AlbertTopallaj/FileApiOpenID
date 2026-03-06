@@ -1,0 +1,26 @@
+meta {
+  name: Delete File By Id
+  type: http
+  seq: 12
+}
+
+delete {
+  url: http://localhost:8080/file/delete
+  body: json
+  auth: none
+}
+
+headers {
+  Cookie: JSESSIONID=FAD332EDF162E3129F8598D76FE36020
+}
+
+body:json {
+  {
+    "id": "5dde8c5f-e898-4892-871a-abac4c2d0be7"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

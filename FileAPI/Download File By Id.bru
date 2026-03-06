@@ -1,0 +1,20 @@
+meta {
+  name: Download File By Id
+  type: http
+  seq: 10
+}
+
+get {
+  url: http://localhost:8080/file/download/2b45ad32-8d9b-4666-99ae-7854393319b5
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: JSESSIONID=FAD332EDF162E3129F8598D76FE36020
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
