@@ -11,6 +11,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
+
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -23,11 +24,13 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.io.IOException;
 import java.util.List;
 
+
 @Component
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     private final UserService userService;
+    private final JWTService jwtService;
     private final OAuth2AuthorizedClientRepository authorizedClientRepository;
     private final WebClient webClient = WebClient
             .builder()
@@ -46,16 +49,22 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         var oidcId = oauth2Token.getName();
 
         var user = userService.getUserByOidc(oidcId, oidcProvider);
+
+        User loggedInUser;
         if (user.isEmpty()) {
             var createdUser = createUser(oidcId, oidcProvider, request, authentication);
             if (createdUser == null) {
                 response.getWriter().println("Failed to create account");
-            } else {
-                response.getWriter().println("Registered account: " + createdUser.getUsername());
+                return;
             }
+            loggedInUser = createdUser;
         } else {
-            response.getWriter().println("Logged in as: " + user.get().getUsername());
+            loggedInUser = user.get();
         }
+
+        String jwt = jwtService.generateToken(loggedInUser.getId());
+        response.setContentType("application/json");
+        response.getWriter().write("{\"token\": \"" + jwt + "\"}");
     }
 
     @Nullable
