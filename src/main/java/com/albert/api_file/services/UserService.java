@@ -96,13 +96,6 @@ public class UserService implements UserDetailsService{
         return user;
     }
 
-    public String authenticateUser(String username, String password) {
-        var user = userRepository.findByUsername(username);
-
-        return jwtService.generateToken(user.get().getId());
-    }
-
-
     public Optional<User> getUserById(UUID userId){
         return userRepository.findById(userId);
     }
