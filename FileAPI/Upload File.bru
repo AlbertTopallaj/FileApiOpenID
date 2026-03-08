@@ -7,11 +7,11 @@ meta {
 post {
   url: http://localhost:8080/file/upload
   body: multipartForm
-  auth: none
+  auth: bearer
 }
 
-headers {
-  Cookie: JSESSIONID=FAD332EDF162E3129F8598D76FE36020
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhdXRoMCIsImlhdCI6MTc3Mjk0MDA2NSwiZXhwIjoxNzcyOTQzNjY1LCJzdWIiOiJkZDE3YjFkMi1lYTI5LTQ4MGQtOTFiZi04NWY2NDRmYWYzNjQifQ.mTjmp0cz8I1f3wSDnuJM7KvOTMsMlOcM_UL75RU7pw4
 }
 
 body:json {
@@ -24,7 +24,7 @@ body:json {
 
 body:multipart-form {
   file: @file(C:\Users\altop\Desktop\test.txt) @contentType(File)
-  folderId: 659b549e-6711-4339-a31a-a71b1b080a16 @contentType(Text)
+  folderId: b7b2ea91-c7dc-49c4-9fde-3d56dc71e03e @contentType(Text)
 }
 
 settings {

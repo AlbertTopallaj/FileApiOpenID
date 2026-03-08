@@ -7,11 +7,15 @@ meta {
 post {
   url: http://localhost:8080/folder
   body: json
-  auth: none
+  auth: bearer
 }
 
 headers {
   Cookie: JSESSIONID=FAD332EDF162E3129F8598D76FE36020
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhdXRoMCIsImlhdCI6MTc3Mjk0MDA2NSwiZXhwIjoxNzcyOTQzNjY1LCJzdWIiOiJkZDE3YjFkMi1lYTI5LTQ4MGQtOTFiZi04NWY2NDRmYWYzNjQifQ.mTjmp0cz8I1f3wSDnuJM7KvOTMsMlOcM_UL75RU7pw4
 }
 
 body:json {
